@@ -1,0 +1,135 @@
+﻿@using Advanture_Game.Shared
+@page "/Game"
+@inject HttpClient Http
+
+<h1> Game </h1>
+
+@if (gameModels == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+
+
+    <table>
+        @for (int i = 0; i < gm.difficulty; i++)
+        {
+            <tr>
+                @for (int j = 0; j < gm.difficulty; j++)
+                {
+                    int n = i * gm.difficulty + j;
+                    @if (set.Contains(n))
+                    {
+                        <td style="color:#ff0000" id="@n">@gm.gridList[n]</td>
+                    }
+                    else
+                    {
+                        <td id="@n">@gm.gridList[n]</td>
+                    }
+                }
+            </tr>
+        }
+    </table>
+    @if (pre.y == difficulty)
+    {
+        <button onclick="@(() => move(true))" type="button" disabled>RIGHT</button>
+    }
+    else
+    {
+        <button onclick="@(() => move(true))" type="button">RIGHT</button>
+    }
+    @if (pre.x == difficulty)
+    {
+        <button onclick="@(() => move(false))" type="button" disabled>DOWN</button>
+    }
+    else
+    {
+        <button onclick="@(() => move(false))" type="button">DOWN</button>
+    }
+    
+
+
+
+}
+
+@if (steps == null)
+{
+    <p>step loading</p>
+}
+else
+{
+    <table>
+        <tr>
+            <th>X</th>
+            <th>Y</th>
+            <th>Remain</th>
+        </tr>
+        @foreach (var s in steps)
+        {
+            <tr>
+                <td>@s.x</td>
+                <td>@s.y</td>
+                <td>@s.remain</td>
+            </tr>
+        }
+    </table>
+}
+
+
+
+
+
+
+
+@functions {
+    GameModel[] gameModels;
+    Step[] steps;
+    HashSet<int> set;
+    Step pre;
+    int difficulty;
+    GameModel gm;
+    protected override async Task OnInitAsync()
+    {
+        gameModels = await Http.GetJsonAsync<GameModel[]>("api/game");
+        steps = await Http.GetJsonAsync<Step[]>("api/step");
+        set = new HashSet<Int32>();
+        foreach (var s in steps)
+        {
+            int id = s.x * s.difficulty + s.y;
+            Console.WriteLine(id);
+            set.Add(id);
+
+        }
+        pre = steps[steps.Length - 1];
+        difficulty = gameModels[gameModels.Length - 1].difficulty;
+        gm = gameModels[gameModels.Length - 1];
+    }
+
+    public void move(bool b)
+    {
+        pre = steps[steps.Length - 1];
+        int index = b ? pre.x * difficulty + pre.y + 1 : (pre.x + 1) * difficulty + pre.y;
+        Step step = new Step();
+        step.x = index / difficulty;
+        step.y = index % difficulty;
+        step.remain = pre.remain + gm.gridList[index];
+        step.difficulty = difficulty;
+        if ( step.remain > 0)
+        {
+            step.alive = true;
+        }
+        else
+        {
+            step.alive = false;
+        }
+        Http.PostJsonAsync<Step>("api/step", step);
+    }
+
+
+
+
+
+
+
+}
